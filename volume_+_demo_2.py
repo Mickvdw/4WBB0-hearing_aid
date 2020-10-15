@@ -12,27 +12,34 @@ os.system('clear') #clear screen, this is just for the OCD purposes
 #setup mixer module
 m = alsaaudio.Mixer(control='Speaker',cardindex =2)
 
+#capture SIGINT signal, e.g., Ctrl + C
+signal.signal(signal.SIGINT, signal_handler)
+
+
 #Constants and variables
 MAX_VOLUME = 100 #set the maximum volume
 DIRECTION  = -1   #set the direction to increase volume 1 or -1
 STEP = 5 #linear steps for increasing/decreasing volume
 amplifying = False #amplifying state
+interrupted = False #intterrupted variable
+
+#get initial values
 volume = int(m.getvolume()[0])  #volume of the speakers
 clkLastState = GPIO.input(clk)  #Laststate of the clk pin 
 dtLastState = GPIO.input(dt)    #Laststate of the dt pin 
 swLastState = GPIO.input(sw)    #Laststate of the sw pin
- 
+
+
 #tell to GPIO library to use logical PIN names/numbers, instead of the physical PIN numbers
 GPIO.setmode(GPIO.BCM) 
  
-#set up the pins we are been using
+#set up the pins we are using
 clk = 17
 dt = 18
 sw = 27
 red = 23
 green = 22
 blue = 24
-
 
 
 #set up the GPIO events on those pins
@@ -43,22 +50,12 @@ GPIO.setup(clk, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(dt, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(sw, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
  
-#get the initial states
-
-
-### demo.py variables
-interrupted = False
-
-"""
-if len(sys.argv) == 1:
-    print("Error: need to specify model name")
-    print("Usage: python demo.py your.model")
-    #sys.exit(-1)
-
-model = sys.argv[1]
-"""
+#load the model en setup the detector for snowboy
 model = "/home/pi/Desktop/project/hello.pmdl"
-    
+detector = snowboydecoder.HotwordDetector(model, sensitivity=0.5,audio_gain=3)
+
+
+
 
 ###volume.py definitions
 #define functions which will be triggered on pin state changes
@@ -111,12 +108,7 @@ def swClicked(channel):
         m.setvolume(0)
     
     print ("amplifying ", amplifying)             
-                 
-print ("Initial clk:", clkLastState)
-print ("Initial dt:", dtLastState)
-print ("Initial sw:", swLastState)
-print ("Initial volume:", volume)
-print ("=========================================")
+
 
 ### demo.py definitions
 def signal_handler(signal, frame):
@@ -127,42 +119,58 @@ def interrupt_callback():
     global interrupted
     return interrupted
 
-def led_light():
-    GPIO.output(green,GPIO.HIGH)
-    sleep(1)
-    GPIO.output(green,GPIO.LOW)
-    sleep(1)
-    GPIO.output(red,GPIO.HIGH)
-    sleep(1)
-    GPIO.output(red,GPIO.LOW)
-    sleep(1)
-    GPIO.output(blue,GPIO.HIGH)
-    sleep(1)
-    GPIO.output(blue,GPIO.LOW)
+def led_light(color):
+    if color == green:
+        GPIO.output(green,GPIO.HIGH)
+        GPIO.output(blue,GPIO.LOW)
+        GPIO.output(red,GPIO.LOW)
+    elif color == blue:
+        GPIO.output(blue,GPIO.HIGH)
+        GPIO.output(red,GPIO.LOW)
+        GPIO.output(green,GPIO.LOW)
+    elif color == red:
+        GPIO.output(red,GPIO.HIGH)
+        GPIO.output(green,GPIO.LOW)
+        GPIO.output(blue,GPIO.LOW)
 
-#capture SIGINT signal, e.g., Ctrl + C
-signal.signal(signal.SIGINT, signal_handler)
+def turn_on():
+    amplifying = True
+    led_light(green)
 
-detector = snowboydecoder.HotwordDetector(model, sensitivity=0.5,audio_gain=3)
 
-
-### volume.py eventhandlers
 
 #set up the interrupts
 GPIO.add_event_detect(clk, GPIO.FALLING, callback=clkClicked, bouncetime=50)
 GPIO.add_event_detect(dt, GPIO.FALLING, callback=dtClicked, bouncetime=50)
 GPIO.add_event_detect(sw, GPIO.FALLING, callback=swClicked, bouncetime=300)
+
+
+print ("Initial clk:", clkLastState)
+print ("Initial dt:", dtLastState)
+print ("Initial sw:", swLastState)
+print ("Initial volume:", volume)
+print ("=========================================")
 print('Listening... Press Ctrl + C to exit')
-### demo.py
-#main loop
-detector.start(detected_callback=led_light,
+
+
+
+detector.start(detected_callback=turn_on,
                interrupt_check=interrupt_callback,
                sleep_time=0.03)
 
 
-### demo.py terminator
+while amplifying:
+    status = detector.RunDetection() 
+    if status == -2:
+        swClicked()
+        led_light(red)   
+    elif status == 0:
+        led_light(green)
+    sleep(.1)
+
+
+### terminators
 detector.terminate()
-### volume.py terminator
 GPIO.cleanup()
 
 
