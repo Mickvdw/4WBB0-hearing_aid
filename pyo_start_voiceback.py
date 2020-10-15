@@ -7,3 +7,5 @@ s.start()
 i = pyo.Input()
 low_filter = Tone(i, freq=280, mul=1, add=0)
 high_filter = Atone(low_filter, freq=4000, mul=1, add=0).out()
+
+#source: http://ajaxsoundstudio.com/pyodoc/api/classes/filters.html
