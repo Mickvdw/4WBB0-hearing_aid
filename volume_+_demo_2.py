@@ -12,7 +12,7 @@ import signal
 #os.system('clear') #clear screen, this is just for the OCD purposes
  
 #setup mixer module
-m = alsaaudio.Mixer(control='Speaker',cardindex =2)
+m = alsaaudio.Mixer(control='Speaker',cardindex =3)
 
 #capture SIGINT signal, e.g., Ctrl + C
 
@@ -55,7 +55,8 @@ volume = 50  #volume of the speakers
 clkLastState = GPIO.input(clk)  #Laststate of the clk pin 
 dtLastState = GPIO.input(dt)    #Laststate of the dt pin 
 swLastState = GPIO.input(sw)    #Laststate of the sw pin
-
+m.setvolume(0)
+ 
 
 ### demo.py definitions
 def signal_handler(signal, frame):
@@ -92,8 +93,8 @@ def clkClicked(channel):
                 volume = MAX_VOLUME
             elif volume < 0:
                 volume = 0
-
-    m.setvolume(int(volume))
+        m.setvolume(int(volume))
+              
     print ("Volume ", volume)
  
 def dtClicked(channel):
@@ -111,8 +112,8 @@ def dtClicked(channel):
                 volume = MAX_VOLUME
             elif volume < 0:
                 volume = 0
-
-    m.setvolume(int(volume))
+        m.setvolume(int(volume))
+    
     print ("Volume ", volume)
  
 def swClicked(channel):
