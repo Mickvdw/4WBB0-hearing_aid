@@ -10,7 +10,7 @@ import signal
 
 
 #os.system('clear') #clear screen, this is just for the OCD purposes
- 
+
 #setup mixer module
 m = alsaaudio.Mixer(control='Speaker',cardindex =3)
 
@@ -18,17 +18,17 @@ m = alsaaudio.Mixer(control='Speaker',cardindex =3)
 
 #Constants and variables
 TURN_OFF_TIME = 11000
-MAX_VOLUME = 100 #set the maximum volume
-DIRECTION  = -1   #set the direction to increase volume 1 or -1
-STEP = 5 #linear steps for increasing/decreasing volume
-amplifying = False #amplifying state
-interrupted = False #intterrupted variable
-prev_sound = int(round(time.time() * 1000)) #get the current time 
-prev_time = int(round(time.time() * 1000)) #get current time
+MAX_VOLUME = 100                            #set the maximum volume
+DIRECTION  = -1                             #set the direction to increase volume 1 or -1
+STEP = 5                                    #linear steps for increasing/decreasing volume
+amplifying = False                          #amplifying state
+interrupted = False                         #intterrupted variable
+prev_sound = int(round(time.time() * 1000)) #get the current time
+prev_time = int(round(time.time() * 1000))  #get current time
 
 #tell to GPIO library to use logical PIN names/numbers, instead of the physical PIN numbers
-GPIO.setmode(GPIO.BCM) 
- 
+GPIO.setmode(GPIO.BCM)
+
 #set up the pins we are using
 clk = 17
 dt = 18
@@ -51,18 +51,18 @@ GPIO.output(blue, GPIO.HIGH)
 time.sleep(1)
 
 #get initial values
-volume = 50  #volume of the speakers
-clkLastState = GPIO.input(clk)  #Laststate of the clk pin 
-dtLastState = GPIO.input(dt)    #Laststate of the dt pin 
+volume = 50                     #volume of the speakers
+clkLastState = GPIO.input(clk)  #Laststate of the clk pin
+dtLastState = GPIO.input(dt)    #Laststate of the dt pin
 swLastState = GPIO.input(sw)    #Laststate of the sw pin
 m.setvolume(0)
- 
+
 
 ### demo.py definitions
 def signal_handler(signal, frame):
     global interrupted
     interrupted = True
- 
+
 def interrupt_callback():
     global interrupted
     return interrupted
@@ -73,9 +73,6 @@ signal.signal(signal.SIGINT, signal_handler)
 #load the model en setup the detector for snowboy
 model = "/home/pi/Desktop/project/hello.pmdl"
 detector = snowboydecoder.HotwordDetector(model, sensitivity=0.5,audio_gain=3)
-
-
-
 
 ###volume.py definitions
 #define functions which will be triggered on pin state changes
@@ -94,18 +91,18 @@ def clkClicked(channel):
             elif volume < 0:
                 volume = 0
         m.setvolume(int(volume))
-              
+
     print ("Volume ", volume)
- 
+
 def dtClicked(channel):
     global volume
     global STEP
     global amplifying
 
-    
+
     clkState = GPIO.input(clk)
     dtState = GPIO.input(dt)
-    if amplifying == True: 
+    if amplifying == True:
         if clkState == 1 and dtState == 0:
             volume = volume - (STEP * DIRECTION)
             if volume > MAX_VOLUME:
@@ -113,13 +110,13 @@ def dtClicked(channel):
             elif volume < 0:
                 volume = 0
         m.setvolume(int(volume))
-    
+
     print ("Volume ", volume)
- 
+
 def swClicked(channel):
     global amplifying
     global volume
-    
+
     if amplifying:
         amplifying = False
         m.setvolume(0)
@@ -128,10 +125,8 @@ def swClicked(channel):
         amplifying = True
         m.setvolume(volume)
         led_light(green)
-    
-    print ("amplifying ", amplifying)             
 
-
+    print ("amplifying ", amplifying)
 
 def led_light(color):
     if color == green:
@@ -154,22 +149,17 @@ def turn_on():
     m.setvolume(int(volume))
     amplifying = True
     led_light(green)
-    
+
 def turn_off():
     global amplifying
     m.setvolume(0)
     amplifying = False
     led_light(red)
 
-
-
-    
-
 #set up the interrupts
 GPIO.add_event_detect(clk, GPIO.FALLING, callback=clkClicked, bouncetime=50)
 GPIO.add_event_detect(dt, GPIO.FALLING, callback=dtClicked, bouncetime=50)
 GPIO.add_event_detect(sw, GPIO.FALLING, callback=swClicked, bouncetime=300)
-
 
 print ("Initial clk:", clkLastState)
 print ("Initial dt:", dtLastState)
@@ -178,17 +168,10 @@ print ("Initial volume:", volume)
 print ("=========================================")
 print('Listening... Press Ctrl + C to exit')
 
-
-
 detector.start(detected_callback=turn_on, stop_amplifying=turn_off,
                interrupt_check=interrupt_callback,
                sleep_time=0.03)
 
-
-
 ### terminators
 detector.terminate()
 GPIO.cleanup()
-
-
-
