@@ -1,0 +1,112 @@
+first we need to set up the raspberry pi for basic file editing and copying.
+	when the pi is booted for the first time follow the setup 
+	and connect to the wifi using the gui after that open and terminal run :
+	sudo raspi-config
+	this wil open the configurator, now chose 5 intefacing option and then chose 2 to enable ssh
+	So one can copy files to the raspberry pi using winscp
+	exit the configurator and install a file editor of choise, we will be using vim:
+	sudo apt install vim
+
+
+first step is to install the python sound libraries and sound manager:
+	sudo apt-get install python-pyaudio python3-pyaudio sox libatlas-base-dev
+
+	make sure pyaudio is installed:(this doesn't seem to be needed but it won't harm)
+	pip install pyaudio
+
+now we have to configure our audio device.
+	using :
+	cat /proc/asound/cards 
+	you will get an overview of your sound card extra info: https://raspberrypi.stackexchange.com/questions/80072/how-can-i-use-an-external-usb-sound-card-and-set-it-as-default
+	Go to /usr/share/alsa and edit the alsa.conf file, this can be done using:
+	cd /usr/share/alsa
+	sudo vim alsa.conf (or directly by using /usr/share/alsa/alsa.conf)
+	scroll down and edit the rows
+	default.pcm.!card 0
+	default.ctl.!card 0
+	to the number of your audio device found with the cat command (in our case 2)
+	default.pcm.!card 2
+	default.ctl.!card 2
+
+	now you should be able to run 
+	alsamixer
+	and see the channels of your audio, and test the speaker by running:
+	speaker-test -c2 -twav
+	and test you microphone by running
+	rec -c2 test.wav trim 0 3
+	This will record 3 second and save it in the folder of where you terminal is at. the file can be played back by:
+	play test.wav
+
+We will now install swig which is used to make a python wrapper for snowboy:
+	install some extra needed packages:
+	sudo apt-get install libpcre3 libpcre3-dev
+	
+	first make a folder in which you would like to download swig and install from:
+	mkdir /home/pi/Desktop/snowboy
+	cd /home/pi/Desktop/snowboy
+	
+	now from the documentation on the github page of snowboy:
+	wget http://downloads.sourceforge.net/swig/swig-3.0.10.tar.gz
+	to unpack the zip file use:
+	tar -xvzf swig-3.0.10.tar.gz
+	move into the folder:
+	cd swig-3.0.10
+	
+	./configure --prefix=/usr                  \
+			--without-clisp                    \
+			--without-maximum-compile-warnings 
+	(you may need to use sudo for the next commands)
+	make
+	make install 
+	Now have a proper look through the text in the terminal and change the /usr/share/doc/swig-3 
+	to the location it was actually installed in, for us it was /usr/share/swig/3.0.10 
+	install -v -m755 -d /usr/share/doc/swig-3.0.10 &&
+	cp -v -R Doc/* /usr/share/doc/swig-3.0.10
+	
+	now move out of the folder:
+	cd ..
+	
+now downloading snowboy and making the wrapper	
+	copy/clone the github page:
+	git clone https://github.com/Kitt-AI/snowboy 
+	go into the pithon folder:
+	cd snowboy/swig/Python
+	make the wrappe:
+	make
+	this will make various files
+	
+we can now almost test snowboy.
+	make a new folder and copy the files you made above
+	also copy the recources folder from the snowboy/snowboy folder
+	and copy the snowboydecoder2.py and volume_+_demo_2.py to the folder
+	make a word model on the snowboy site and also put in in the file
+	you can now run the code using:
+	python demo.py your_model.pmdl
+	
+	
+	
+	
+	
+	
+	
+	
+	
+errors:
+
+	errors saying unknow pcm device then try installing libasound2.dev
+	error saying jack server not running or can't be started try "alsactl init"
+	error: python: src/hostapi/alsa/pa_linux_alsa.c:3641: PaAlsaStreamComponent_BeginPolling: Assertion `ret == self->nfds' failed
+		try installing mplayer using sudo apt install mplayer
+		if that doesn't fix it try removing libportaudio2 and (re)installing libasound2-dev
+		and install a alsapatch according to (https://stackoverflow.com/questions/59006083/how-to-install-portaudio-on-pi-properly/60824906#60824906)
+		git clone -b alsapatch https://github.com/gglockner/portaudio
+		cd portaudio
+		./configure && make
+		sudo make install
+		sudo ldconfig
+		cd .. 
+		afterwards installing pyaudio for python
+		using 
+		pip install pyaudio 
+		you can try to use sudo pip3 install pyaudio but i had no luck with it. and some say you should never use sudo when using pip.
+		

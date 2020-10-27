@@ -4,7 +4,7 @@ import alsaaudio
 from RPi import GPIO
 import time
 import snowboydetect
-import snowboydecoder
+import snowboydecoder2
 import sys
 import signal
 
